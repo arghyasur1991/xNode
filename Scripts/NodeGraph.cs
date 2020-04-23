@@ -5,11 +5,12 @@ using UnityEngine;
 namespace XNode {
     /// <summary> Base class for all node graphs </summary>
     [Serializable]
-    public abstract class NodeGraph : ScriptableObject {
+    public abstract class NodeGraph : Node {
 
         /// <summary> All nodes in the graph. <para/>
         /// See: <see cref="AddNode{T}"/> </summary>
-        [SerializeField] public List<Node> nodes = new List<Node>();
+        [SerializeField][HideInInspector] public List<Node> nodes = new List<Node>();
+        [SerializeField] private GraphPortMapDictionary portMap = new GraphPortMapDictionary();
 
         /// <summary> Add a node to the graph by type (convenience method - will call the System.Type version) </summary>
         public T AddNode<T>() where T : Node {
@@ -77,9 +78,96 @@ namespace XNode {
             return graph;
         }
 
+        public T GetInputValue<T>(NodePort nodePort)
+        {
+            bool result = portMap.TryGetValue(nodePort, out NodePort inputPort);
+            if (result)
+            {
+                return GetInputValue<T>(inputPort.fieldName);
+            }
+            return default;
+        }
+
+        public override object GetValue(NodePort nodePort)
+        {
+            bool result = portMap.TryGetValue(nodePort, out NodePort outputPort);
+            if (result)
+            {
+                return outputPort.node.GetValue(outputPort);
+            }
+            return null;
+        }
+
+        public void AddFromChildNodePort(NodePort nodePort)
+        {
+            if (portMap.ContainsKey(nodePort))
+            {
+                return;
+            }
+            if (nodePort.IsInput)
+            {
+                portMap.Add(nodePort, AddDynamicInput(nodePort.ValueType, nodePort.connectionType, nodePort.typeConstraint, nodePort.fieldName));
+            }
+            else if (nodePort.IsOutput)
+            {
+                portMap.Add(AddDynamicOutput(nodePort.ValueType, nodePort.connectionType, nodePort.typeConstraint, nodePort.fieldName), nodePort);
+            }
+        }
+
         protected virtual void OnDestroy() {
             // Remove all nodes prior to graph destruction
             Clear();
+        }
+
+        private class GraphPortMapEqualityComparer : IEqualityComparer<NodePort>
+        {
+            public bool Equals(NodePort x, NodePort y)
+            {
+                return (x.ValueType == y.ValueType) &&
+                        (x.node == y.node) &&
+                        (x.direction == y.direction) &&
+                        (x.fieldName == y.fieldName);
+            }
+
+            public int GetHashCode(NodePort obj)
+            {
+                return obj.fieldName.GetHashCode();
+            }
+        }
+
+        [Serializable]
+        private class GraphPortMapDictionary : Dictionary<NodePort, NodePort>, ISerializationCallbackReceiver
+        {
+            [SerializeField] private List<NodePort> keys = new List<NodePort>();
+            [SerializeField] private List<NodePort> values = new List<NodePort>();
+
+            public GraphPortMapDictionary()
+                :
+                base(new GraphPortMapEqualityComparer())
+            {
+            }
+
+            public void OnBeforeSerialize()
+            {
+                keys.Clear();
+                values.Clear();
+                foreach (KeyValuePair<NodePort, NodePort> pair in this)
+                {
+                    keys.Add(pair.Key);
+                    values.Add(pair.Value);
+                }
+            }
+
+            public void OnAfterDeserialize()
+            {
+                this.Clear();
+
+                if (keys.Count != values.Count)
+                    throw new System.Exception("there are " + keys.Count + " keys and " + values.Count + " values after deserialization. Make sure that both key and value types are serializable.");
+
+                for (int i = 0; i < keys.Count; i++)
+                    this.Add(keys[i], values[i]);
+            }
         }
     }
 }

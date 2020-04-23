@@ -218,6 +218,7 @@ namespace XNode {
         public bool HasPort(string fieldName) {
             return ports.ContainsKey(fieldName);
         }
+
 #endregion
 
 #region Inputs/Outputs
@@ -227,6 +228,10 @@ namespace XNode {
         public T GetInputValue<T>(string fieldName, T fallback = default(T)) {
             NodePort port = GetPort(fieldName);
             if (port != null && port.IsConnected) return port.GetInputValue<T>();
+            else if (graph != null)
+            {
+                return graph.GetInputValue<T>(port);
+            }
             else return fallback;
         }
 

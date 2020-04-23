@@ -114,6 +114,12 @@ namespace XNode {
             }
         }
 
+        public void AddToGraph()
+        {
+            if (IsConnected) return;
+            node.graph.AddFromChildNodePort(this);
+        }
+
         /// <summary> Return the output value of this node through its parent nodes GetValue override method. </summary>
         /// <returns> <see cref="Node.GetValue(NodePort)"/> </returns>
         public object GetOutputValue() {
