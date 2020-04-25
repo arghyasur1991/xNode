@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using UnityEditor;
 using UnityEngine;
 
 namespace XNode {
@@ -8,9 +10,9 @@ namespace XNode {
     public abstract class NodeGraph : Node {
 
         /// <summary> All nodes in the graph. <para/>
-        /// See: <see cref="AddNode{T}"/> </summary>
-        [SerializeField][HideInInspector] public List<Node> nodes = new List<Node>();
-        [SerializeField] private GraphPortMapDictionary portMap = new GraphPortMapDictionary();
+
+        [SerializeField] [HideInInspector] public List<Node> nodes = new List<Node>();
+        [SerializeField] [HideInInspector] private GraphPortMapDictionary portMap = new GraphPortMapDictionary();
 
         /// <summary> Add a node to the graph by type (convenience method - will call the System.Type version) </summary>
         public T AddNode<T>() where T : Node {
@@ -24,6 +26,13 @@ namespace XNode {
             node.graph = this;
             nodes.Add(node);
             return node;
+        }
+
+        public virtual void AddNode(Node node)
+        {
+            Node.graphHotfix = this;
+            node.graph = this;
+            nodes.Add(node);
         }
 
         /// <summary> Creates a copy of the original node in the graph </summary>
@@ -66,15 +75,42 @@ namespace XNode {
                 node.graph = graph;
                 graph.nodes[i] = node;
             }
-
             // Redirect all connections
-            for (int i = 0; i < graph.nodes.Count; i++) {
+            for (int i = 0; i < graph.nodes.Count; i++)
+            {
                 if (graph.nodes[i] == null) continue;
-                foreach (NodePort port in graph.nodes[i].Ports) {
+                foreach (NodePort port in graph.nodes[i].Ports)
+                {
                     port.Redirect(nodes, graph.nodes);
+                    NodePort temp = new NodePort(port, nodes[i]);
+                    if (!port.IsConnected)
+                    {
+                        if (port.direction == NodePort.IO.Input)
+                        {
+                            bool result = graph.portMap.TryGetValue(temp, out NodePort inputPort);
+                            if (result)
+                            {
+                                graph.RemoveDynamicPort(inputPort);
+                                graph.portMap.Remove(temp);
+                                graph.portMap.Add(port, graph.AddDynamicInput(port.ValueType, port.connectionType, port.typeConstraint, port.fieldName));
+                            }
+                        }
+                        else
+                        {
+                            foreach (var key in graph.portMap.Keys.ToList())
+                            {
+                                if (graph.portMap.Comparer.Equals(graph.portMap[key], temp))
+                                {
+                                    graph.RemoveDynamicPort(key);
+                                    graph.portMap.Remove(key);
+                                    graph.portMap.Add(graph.AddDynamicOutput(port.ValueType, port.connectionType, port.typeConstraint, port.fieldName), port);
+                                }
+                            }
+                        }
+                    }
                 }
             }
-
+            graph.portMap.OnBeforeSerialize();
             return graph;
         }
 

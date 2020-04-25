@@ -42,7 +42,7 @@ namespace XNodeEditor {
                     DragAndDrop.visualMode = DragAndDropVisualMode.Generic;
                     if (e.type == EventType.DragPerform) {
                         DragAndDrop.AcceptDrag();
-                        graphEditor.OnDropObjects(DragAndDrop.objectReferences);
+                        graphEditor.OnDropObjects(DragAndDrop.objectReferences, e.mousePosition);
                     }
                     break;
                 case EventType.MouseMove:

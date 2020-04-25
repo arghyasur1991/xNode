@@ -143,8 +143,23 @@ namespace XNodeEditor {
         }
 
         /// <summary> Deal with objects dropped into the graph through DragAndDrop </summary>
-        public virtual void OnDropObjects(UnityEngine.Object[] objects) {
+        public virtual void OnDropObjects(UnityEngine.Object[] objects, Vector2 mousePosition) {
             if (GetType() != typeof(NodeGraphEditor)) Debug.Log("No OnDropObjects override defined for " + GetType());
+            if (typeof(XNode.NodeGraph).IsInstanceOfType(objects[0]))
+            {
+                Undo.RecordObject(target, "Add NodeGraph");
+                var newNode = (objects[0] as XNode.NodeGraph).Copy();
+                target.AddNode(newNode);
+                Undo.RegisterCreatedObjectUndo(newNode, "Add NodeGraph");
+                newNode.position = NodeEditorWindow.current.WindowToGridPosition(mousePosition);
+                if (!string.IsNullOrEmpty(AssetDatabase.GetAssetPath(target))) AssetDatabase.AddObjectToAsset(newNode, target);
+                foreach (var node in newNode.nodes)
+                {
+                    if (!string.IsNullOrEmpty(AssetDatabase.GetAssetPath(newNode))) AssetDatabase.AddObjectToAsset(node, newNode);
+                }
+                if (NodeEditorPreferences.GetSettings().autoSave) AssetDatabase.SaveAssets();
+                NodeEditorWindow.RepaintAll();
+            }
         }
 
         /// <summary> Create a node and save it in the graph asset </summary>
