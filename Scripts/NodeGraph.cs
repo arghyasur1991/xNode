@@ -71,7 +71,15 @@ namespace XNode {
             for (int i = 0; i < nodes.Count; i++) {
                 if (nodes[i] == null) continue;
                 Node.graphHotfix = graph;
-                Node node = Instantiate(nodes[i]) as Node;
+                Node node;
+                if (typeof(NodeGraph).IsInstanceOfType(nodes[i]))
+                {
+                    node = (nodes[i] as NodeGraph).Copy();
+                }
+                else
+                {
+                    node = Instantiate(nodes[i]) as Node;
+                }
                 node.graph = graph;
                 graph.nodes[i] = node;
             }
@@ -90,9 +98,8 @@ namespace XNode {
                             bool result = graph.portMap.TryGetValue(temp, out NodePort inputPort);
                             if (result)
                             {
-                                graph.RemoveDynamicPort(inputPort);
                                 graph.portMap.Remove(temp);
-                                graph.portMap.Add(port, graph.AddDynamicInput(port.ValueType, port.connectionType, port.typeConstraint, port.fieldName));
+                                graph.portMap.Add(port, inputPort);
                             }
                         }
                         else
@@ -101,9 +108,8 @@ namespace XNode {
                             {
                                 if (graph.portMap.Comparer.Equals(graph.portMap[key], temp))
                                 {
-                                    graph.RemoveDynamicPort(key);
                                     graph.portMap.Remove(key);
-                                    graph.portMap.Add(graph.AddDynamicOutput(port.ValueType, port.connectionType, port.typeConstraint, port.fieldName), port);
+                                    graph.portMap.Add(key, port);
                                 }
                             }
                         }
