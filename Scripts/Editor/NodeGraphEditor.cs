@@ -188,6 +188,13 @@ namespace XNodeEditor {
 
         /// <summary> Safely remove a node and all its connections. </summary>
         public virtual void RemoveNode(XNode.Node node) {
+            if (typeof(XNode.NodeGraph).IsInstanceOfType(node))
+            {
+                foreach(var n in (node as XNode.NodeGraph).nodes)
+                {
+                    RemoveNode(n);
+                }
+            }
             Undo.RecordObject(node, "Delete Node");
             Undo.RecordObject(target, "Delete Node");
             foreach (var port in node.Ports)
