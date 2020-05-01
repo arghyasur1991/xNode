@@ -53,6 +53,7 @@ namespace XNode {
         }
         private Type valueType;
 
+        [SerializeField] private int _graphPortLevel;
         [SerializeField] private string _fieldName;
         [SerializeField] private Node _node;
         [SerializeField] private string _typeQualifiedName;
@@ -114,10 +115,49 @@ namespace XNode {
             }
         }
 
-        public void AddToGraph()
+        private int GetGraphLevel(NodeGraph graph)
+        {
+            int level = 1;
+            NodeGraph currentGraph = node.graph;
+            while (currentGraph != graph)
+            {
+                if (currentGraph == null)
+                {
+                    return -1;
+                }
+                level++;
+                currentGraph = currentGraph.graph;
+            }
+            return level;
+        }
+
+        public void AddToGraph(NodeGraph graph)
         {
             if (IsConnected) return;
-            node.graph.AddFromChildNodePort(this);
+            int level = GetGraphLevel(graph);
+            if (_graphPortLevel < level) _graphPortLevel = level;
+        }
+
+        public void RemoveFromGraph(NodeGraph graph)
+        {
+            int level = GetGraphLevel(graph);
+            if (level == -1) return;
+            if (_graphPortLevel >= level) _graphPortLevel = level - 1;
+            for (int i = connections.Count - 1; i >= 0; i--)
+            {
+                var connection = connections[i];
+                if (connection.node.graph == graph)
+                {
+                    Disconnect(i);
+                }
+            }
+        }
+
+        public bool IsAddedToGraph(NodeGraph graph)
+        {
+            int level = GetGraphLevel(graph);
+            if (level == -1) return false;
+            return _graphPortLevel >= level;
         }
 
         /// <summary> Return the output value of this node through its parent nodes GetValue override method. </summary>
@@ -391,10 +431,30 @@ namespace XNode {
         }
 
         /// <summary> Swap connected nodes from the old list with nodes from the new list </summary>
-        public void Redirect(List<Node> oldNodes, List<Node> newNodes) {
+        public void Redirect(NodeGraph oldGraph, NodeGraph newGraph) {
             foreach (PortConnection connection in connections) {
-                int index = oldNodes.IndexOf(connection.node);
-                if (index >= 0) connection.node = newNodes[index];
+                int level = connection.Port.GetGraphLevel(oldGraph);
+                if (level == -1)
+                {
+                    continue;
+                }
+                Node currentNode = connection.node;
+                int[] indices = new int[level];
+                int c = 0;
+                while(c < level)
+                {
+                    indices[c] = currentNode.graph.nodes.IndexOf(currentNode);
+                    currentNode = currentNode.graph;
+                    c++;
+                }
+                c = level -1;
+                currentNode = newGraph;
+                while (c >= 0)
+                {
+                    currentNode = (currentNode as NodeGraph).nodes[indices[c]];
+                    c--;
+                };
+                connection.node = currentNode;
             }
         }
 

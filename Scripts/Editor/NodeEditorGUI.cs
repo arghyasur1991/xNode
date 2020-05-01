@@ -113,9 +113,11 @@ namespace XNodeEditor {
         void ShowPortContextMenu(XNode.NodePort hoveredPort) {
             GenericMenu contextMenu = new GenericMenu();
             contextMenu.AddItem(new GUIContent("Clear Connections"), false, () => hoveredPort.ClearConnections());
-            contextMenu.AddItem(new GUIContent("Add To Graph"), false, () => hoveredPort.AddToGraph());
+            contextMenu.AddItem(new GUIContent("Add To Graph"), false, () => hoveredPort.AddToGraph(graphEditor.target));
+            contextMenu.AddItem(new GUIContent("Remove From Graph"), false, () => hoveredPort.RemoveFromGraph(graphEditor.target));
             contextMenu.DropDown(new Rect(Event.current.mousePosition, Vector2.zero));
-            if (NodeEditorPreferences.GetSettings().autoSave) AssetDatabase.SaveAssets();
+            //if (NodeEditorPreferences.GetSettings().autoSave)
+                AssetDatabase.SaveAssets();
         }
 
         static Vector2 CalculateBezierPoint(Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3, float t) {
@@ -429,7 +431,12 @@ namespace XNodeEditor {
                 if (e.type == EventType.Repaint) {
                     removeEntries.Clear();
                     foreach (var kvp in _portConnectionPoints)
-                        if (kvp.Key.node == node) removeEntries.Add(kvp.Key);
+                    {
+                        if (kvp.Key.node == node)
+                        {
+                            removeEntries.Add(kvp.Key);
+                        }
+                    }
                     foreach (var k in removeEntries) _portConnectionPoints.Remove(k);
                 }
 

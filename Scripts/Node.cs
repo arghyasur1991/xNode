@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace XNode {
@@ -95,7 +96,17 @@ namespace XNode {
 #endregion
 
         /// <summary> Iterate over all ports on this node. </summary>
-        public IEnumerable<NodePort> Ports { get { foreach (NodePort port in ports.Values) yield return port; } }
+        public IEnumerable<NodePort> Ports { get {
+                foreach (NodePort port in ports.Values) yield return port;
+                if (this as NodeGraph != null)
+                {
+                    foreach (var graphPort in (this as NodeGraph).GraphPorts)
+                    {
+                        yield return graphPort;
+                    }
+                }
+            }
+        }
         /// <summary> Iterate over all outputs on this node. </summary>
         public IEnumerable<NodePort> Outputs { get { foreach (NodePort port in Ports) { if (port.IsOutput) yield return port; } } }
         /// <summary> Iterate over all inputs on this node. </summary>
@@ -228,10 +239,6 @@ namespace XNode {
         public T GetInputValue<T>(string fieldName, T fallback = default(T)) {
             NodePort port = GetPort(fieldName);
             if (port != null && port.IsConnected) return port.GetInputValue<T>();
-            else if (graph != null)
-            {
-                return graph.GetInputValue<T>(port);
-            }
             else return fallback;
         }
 

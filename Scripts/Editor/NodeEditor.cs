@@ -57,6 +57,13 @@ namespace XNodeEditor {
                 NodeEditorGUILayout.PropertyField(iterator, true);
             }
 #endif
+            if (target as XNode.NodeGraph != null)
+            {
+                foreach (XNode.NodePort graphPort in (target as XNode.NodeGraph).GraphPorts)
+                {
+                    NodeEditorGUILayout.PortField(graphPort);
+                }
+            }
 
             // Iterate through dynamic ports and draw them in the order in which they are serialized
             foreach (XNode.NodePort dynamicPort in target.DynamicPorts) {
