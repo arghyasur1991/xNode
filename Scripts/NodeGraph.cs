@@ -11,7 +11,7 @@ namespace XNode {
 
         /// <summary> All nodes in the graph. <para/>
 
-        [SerializeField]  public List<Node> nodes = new List<Node>();
+        [SerializeField] [HideInInspector] public List<Node> nodes = new List<Node>();
         [SerializeField] public IEnumerable<NodePort> GraphPorts {
             get {
                 foreach (var node in nodes)
