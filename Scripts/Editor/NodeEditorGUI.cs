@@ -112,12 +112,23 @@ namespace XNodeEditor {
         /// <summary> Show right-click context menu for hovered port </summary>
         void ShowPortContextMenu(XNode.NodePort hoveredPort) {
             GenericMenu contextMenu = new GenericMenu();
-            contextMenu.AddItem(new GUIContent("Clear Connections"), false, () => hoveredPort.ClearConnections());
-            contextMenu.AddItem(new GUIContent("Add To Graph"), false, () => hoveredPort.AddToGraph(graphEditor.target));
-            contextMenu.AddItem(new GUIContent("Remove From Graph"), false, () => hoveredPort.RemoveFromGraph(graphEditor.target));
+            contextMenu.AddItem(new GUIContent("Clear Connections"), false, () =>
+            {
+                hoveredPort.ClearConnections();
+                if (NodeEditorPreferences.GetSettings().autoSave) AssetDatabase.SaveAssets();
+            });
+            contextMenu.AddItem(new GUIContent("Add To Graph"), false, () =>
+            {
+                hoveredPort.AddToGraph(graphEditor.target);
+                if (NodeEditorPreferences.GetSettings().autoSave) AssetDatabase.SaveAssets();
+            });
+            contextMenu.AddItem(new GUIContent("Remove From Graph"), false, () =>
+            {
+                hoveredPort.RemoveFromGraph(graphEditor.target);
+                if (NodeEditorPreferences.GetSettings().autoSave) AssetDatabase.SaveAssets();
+            }); 
             contextMenu.DropDown(new Rect(Event.current.mousePosition, Vector2.zero));
-            //if (NodeEditorPreferences.GetSettings().autoSave)
-                AssetDatabase.SaveAssets();
+            if (NodeEditorPreferences.GetSettings().autoSave) AssetDatabase.SaveAssets();
         }
 
         static Vector2 CalculateBezierPoint(Vector2 p0, Vector2 p1, Vector2 p2, Vector2 p3, float t) {
